@@ -1063,6 +1063,44 @@ public class DBHelper extends SQLiteOpenHelper {
         return orders;
     }
 
+
+    // ADD THIS METHOD TO YOUR DBHelper.java FILE
+// Place it after the getOrdersByStatus() method
+
+    /**
+     * Get all history (for backward compatibility with old History table)
+     * This method returns completed orders as History objects
+     */
+    public List<History> getAllHistory() {
+        List<History> historyList = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String query = "SELECT o.id, o.total, o.created_at, " +
+                "GROUP_CONCAT(m.nama || ' (' || oi.qty || 'x)', ', ') as items " +
+                "FROM " + TABLE_ORDERS + " o " +
+                "INNER JOIN " + TABLE_ORDER_ITEMS + " oi ON o.id = oi.order_id " +
+                "INNER JOIN " + TABLE_MENU + " m ON oi.menu_id = m.id " +
+                "WHERE o.status = 'completed' " +
+                "GROUP BY o.id " +
+                "ORDER BY o.created_at DESC";
+
+        Cursor cursor = db.rawQuery(query, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                History history = new History();
+                history.setId(cursor.getInt(cursor.getColumnIndexOrThrow("id")));
+                history.setTotal(cursor.getInt(cursor.getColumnIndexOrThrow("total")));
+                history.setTanggal(cursor.getString(cursor.getColumnIndexOrThrow("created_at")));
+                history.setItems(cursor.getString(cursor.getColumnIndexOrThrow("items")));
+                historyList.add(history);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        return historyList;
+    }
+
+
 // ======================== STATISTICS METHODS (For Admin Dashboard) ========================
 
     /**

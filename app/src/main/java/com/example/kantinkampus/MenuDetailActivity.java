@@ -14,10 +14,10 @@ import java.util.List;
 import java.util.Locale;
 
 public class MenuDetailActivity extends AppCompatActivity {
-    private TextView tvMenuName, tvMenuKategori, tvMenuPrice, tvMenuDescription, tvMenuStatus;
-    private TextView tvFavoriteIcon, tvAverageRating, tvRatingStars, tvTotalReviews, tvEmptyReviews;
-    private TextView btnAddReview;
-    private CardView btnBack, btnFavorite, btnAddToCart, cardStatus;
+    private TextView tvMenuName, tvMenuPrice, tvMenuKategori, tvMenuDescription, tvMenuStatus;
+    private TextView tvFavoriteIcon, tvAverageRating, tvRatingStars, tvTotalReviews;
+    private TextView tvEmptyReviews, btnAddReview;
+    private CardView btnFavorite, btnAddToCart, cardStatus, btnBack;
     private RecyclerView rvReviews;
 
     private DBHelper dbHelper;
@@ -49,18 +49,29 @@ public class MenuDetailActivity extends AppCompatActivity {
         // Initialize views
         initViews();
 
-        // Load data
-        loadMenuDetail();
-        loadReviews();
+        // Load menu data
+        loadMenuData();
 
         // Setup listeners
         setupListeners();
+
+        // Load reviews
+        loadReviews();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Reload reviews when returning from add review
+        loadReviews();
+        // Reload favorite status
+        loadFavoriteStatus();
     }
 
     private void initViews() {
         tvMenuName = findViewById(R.id.tvMenuName);
-        tvMenuKategori = findViewById(R.id.tvMenuKategori);
         tvMenuPrice = findViewById(R.id.tvMenuPrice);
+        tvMenuKategori = findViewById(R.id.tvMenuKategori);
         tvMenuDescription = findViewById(R.id.tvMenuDescription);
         tvMenuStatus = findViewById(R.id.tvMenuStatus);
         tvFavoriteIcon = findViewById(R.id.tvFavoriteIcon);
@@ -69,17 +80,16 @@ public class MenuDetailActivity extends AppCompatActivity {
         tvTotalReviews = findViewById(R.id.tvTotalReviews);
         tvEmptyReviews = findViewById(R.id.tvEmptyReviews);
         btnAddReview = findViewById(R.id.btnAddReview);
-
-        btnBack = findViewById(R.id.btnBack);
         btnFavorite = findViewById(R.id.btnFavorite);
         btnAddToCart = findViewById(R.id.btnAddToCart);
         cardStatus = findViewById(R.id.cardStatus);
-
+        btnBack = findViewById(R.id.btnBack);
         rvReviews = findViewById(R.id.rvReviews);
+
         rvReviews.setLayoutManager(new LinearLayoutManager(this));
     }
 
-    private void loadMenuDetail() {
+    private void loadMenuData() {
         menu = dbHelper.getMenuById(menuId);
         if (menu == null) {
             Toast.makeText(this, "Menu tidak ditemukan", Toast.LENGTH_SHORT).show();
@@ -87,15 +97,15 @@ public class MenuDetailActivity extends AppCompatActivity {
             return;
         }
 
-        // Set menu info
         NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
 
         tvMenuName.setText(menu.getNama());
-        tvMenuKategori.setText("🏷️ " + (menu.getKategori() != null ? menu.getKategori() : "Umum"));
         tvMenuPrice.setText(formatter.format(menu.getHarga()));
+        tvMenuKategori.setText("🏷️ " + (menu.getKategori() != null ? menu.getKategori() : "Umum"));
+
         tvMenuDescription.setText(menu.getDeskripsi() != null && !menu.getDeskripsi().isEmpty()
                 ? menu.getDeskripsi()
-                : "Tidak ada deskripsi untuk menu ini.");
+                : "Tidak ada deskripsi");
 
         // Set status
         if (menu.isAvailable()) {
@@ -106,9 +116,13 @@ public class MenuDetailActivity extends AppCompatActivity {
             cardStatus.setCardBackgroundColor(getResources().getColor(R.color.danger));
         }
 
-        // Check if favorite
+        // Load favorite status
+        loadFavoriteStatus();
+    }
+
+    private void loadFavoriteStatus() {
         isFavorite = dbHelper.isFavorite(userId, menuId);
-        updateFavoriteIcon();
+        tvFavoriteIcon.setText(isFavorite ? "❤️" : "🤍");
     }
 
     private void loadReviews() {
@@ -129,40 +143,36 @@ public class MenuDetailActivity extends AppCompatActivity {
             for (Review review : reviews) {
                 totalRating += review.getRating();
             }
-            float averageRating = totalRating / reviews.size();
+            float avgRating = totalRating / reviews.size();
 
-            // Update UI
-            tvAverageRating.setText(String.format(Locale.getDefault(), "%.1f", averageRating));
-            tvRatingStars.setText(getStarsFromRating(averageRating));
-            tvTotalReviews.setText(reviews.size() + " review" + (reviews.size() > 1 ? "s" : ""));
+            tvAverageRating.setText(String.format(Locale.getDefault(), "%.1f", avgRating));
+            tvTotalReviews.setText(reviews.size() + (reviews.size() == 1 ? " review" : " reviews"));
 
-            // Set adapter
+            // Display stars
+            int fullStars = (int) Math.round(avgRating);
+            StringBuilder stars = new StringBuilder();
+            for (int i = 0; i < 5; i++) {
+                stars.append(i < fullStars ? "⭐" : "☆");
+            }
+            tvRatingStars.setText(stars.toString());
+
+            // Setup adapter
             reviewAdapter = new ReviewAdapter(this, reviews);
             rvReviews.setAdapter(reviewAdapter);
         }
-    }
-
-    private String getStarsFromRating(float rating) {
-        StringBuilder stars = new StringBuilder();
-        int fullStars = (int) rating;
-        boolean hasHalfStar = (rating - fullStars) >= 0.5;
-
-        for (int i = 0; i < 5; i++) {
-            if (i < fullStars) {
-                stars.append("⭐");
-            } else if (i == fullStars && hasHalfStar) {
-                stars.append("⭐");
-            } else {
-                stars.append("☆");
-            }
-        }
-        return stars.toString();
     }
 
     private void setupListeners() {
         btnBack.setOnClickListener(v -> finish());
 
         btnFavorite.setOnClickListener(v -> toggleFavorite());
+
+        btnAddReview.setOnClickListener(v -> {
+            Intent intent = new Intent(MenuDetailActivity.this, AddReviewActivity.class);
+            intent.putExtra("menu_id", menuId);
+            intent.putExtra("menu_name", menu.getNama());
+            startActivity(intent);
+        });
 
         btnAddToCart.setOnClickListener(v -> {
             if (menu.isAvailable()) {
@@ -173,13 +183,6 @@ public class MenuDetailActivity extends AppCompatActivity {
                 Toast.makeText(this, "❌ Menu tidak tersedia", Toast.LENGTH_SHORT).show();
             }
         });
-
-        btnAddReview.setOnClickListener(v -> {
-            Intent intent = new Intent(MenuDetailActivity.this, AddReviewActivity.class);
-            intent.putExtra("menu_id", menuId);
-            intent.putExtra("menu_name", menu.getNama());
-            startActivity(intent);
-        });
     }
 
     private void toggleFavorite() {
@@ -188,7 +191,7 @@ public class MenuDetailActivity extends AppCompatActivity {
             int result = dbHelper.removeFromFavorites(userId, menuId);
             if (result > 0) {
                 isFavorite = false;
-                updateFavoriteIcon();
+                tvFavoriteIcon.setText("🤍");
                 Toast.makeText(this, "💔 Dihapus dari favorit", Toast.LENGTH_SHORT).show();
             }
         } else {
@@ -196,19 +199,9 @@ public class MenuDetailActivity extends AppCompatActivity {
             long result = dbHelper.addToFavorites(userId, menuId);
             if (result > 0) {
                 isFavorite = true;
-                updateFavoriteIcon();
-                Toast.makeText(this, "❤️ Ditambahkan ke favorit", Toast.LENGTH_SHORT).show();
+                tvFavoriteIcon.setText("❤️");
+                Toast.makeText(this, "💖 Ditambahkan ke favorit", Toast.LENGTH_SHORT).show();
             }
         }
-    }
-
-    private void updateFavoriteIcon() {
-        tvFavoriteIcon.setText(isFavorite ? "❤️" : "🤍");
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        loadReviews(); // Reload reviews when returning from AddReview
     }
 }
