@@ -2,28 +2,25 @@ package com.example.kantinkampus;
 
 public class User {
     private int id;
-    private String username;
+    private String email;
     private String password;
     private String name;
-    private String email;
+    private String role; // 'admin' atau 'customer'
     private String phone;
-    private String role; // "customer" or "admin"
+    private String nimNip; // NIM untuk mahasiswa, NIP untuk dosen
+    private String type; // 'mahasiswa', 'dosen', atau null untuk admin
     private String createdAt;
-
-    public static final String ROLE_CUSTOMER = "customer";
-    public static final String ROLE_ADMIN = "admin";
 
     public User() {}
 
-    public User(int id, String username, String password, String name, String email, String phone, String role, String createdAt) {
+    public User(int id, String email, String name, String role, String phone, String nimNip, String type) {
         this.id = id;
-        this.username = username;
-        this.password = password;
-        this.name = name;
         this.email = email;
-        this.phone = phone;
+        this.name = name;
         this.role = role;
-        this.createdAt = createdAt;
+        this.phone = phone;
+        this.nimNip = nimNip;
+        this.type = type;
     }
 
     // Getters and Setters
@@ -35,12 +32,12 @@ public class User {
         this.id = id;
     }
 
-    public String getUsername() {
-        return username;
+    public String getEmail() {
+        return email;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPassword() {
@@ -59,12 +56,12 @@ public class User {
         this.name = name;
     }
 
-    public String getEmail() {
-        return email;
+    public String getRole() {
+        return role;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public String getPhone() {
@@ -75,12 +72,20 @@ public class User {
         this.phone = phone;
     }
 
-    public String getRole() {
-        return role;
+    public String getNimNip() {
+        return nimNip;
     }
 
-    public void setRole(String role) {
-        this.role = role;
+    public void setNimNip(String nimNip) {
+        this.nimNip = nimNip;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     public String getCreatedAt() {
@@ -93,10 +98,29 @@ public class User {
 
     // Helper methods
     public boolean isAdmin() {
-        return ROLE_ADMIN.equals(role);
+        return "admin".equals(role);
     }
 
     public boolean isCustomer() {
-        return ROLE_CUSTOMER.equals(role);
+        return "customer".equals(role);
+    }
+
+    public boolean isMahasiswa() {
+        return "mahasiswa".equals(type);
+    }
+
+    public boolean isDosen() {
+        return "dosen".equals(type);
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", email='" + email + '\'' +
+                ", name='" + name + '\'' +
+                ", role='" + role + '\'' +
+                ", type='" + type + '\'' +
+                '}';
     }
 }

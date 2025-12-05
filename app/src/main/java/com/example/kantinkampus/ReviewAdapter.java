@@ -29,16 +29,12 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
     public void onBindViewHolder(@NonNull ReviewViewHolder holder, int position) {
         Review review = reviews.get(position);
 
-        holder.tvUserName.setText(review.getUserName());
-        holder.tvComment.setText(review.getComment());
-        holder.tvDate.setText(review.getCreatedAt());
-
-        // Display rating as stars
-        StringBuilder stars = new StringBuilder();
-        for (int i = 0; i < review.getRating(); i++) {
-            stars.append("⭐");
-        }
-        holder.tvRating.setText(stars.toString());
+        holder.tvReviewerName.setText(review.getUserName());
+        holder.tvReviewDate.setText(review.getCreatedAt());
+        holder.tvReviewStars.setText(review.getRatingStars());
+        holder.tvReviewComment.setText(review.getComment() != null && !review.getComment().isEmpty()
+                ? review.getComment()
+                : "(Tidak ada komentar)");
     }
 
     @Override
@@ -47,14 +43,14 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
     }
 
     public static class ReviewViewHolder extends RecyclerView.ViewHolder {
-        TextView tvUserName, tvRating, tvComment, tvDate;
+        TextView tvReviewerName, tvReviewDate, tvReviewStars, tvReviewComment;
 
         public ReviewViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvUserName = itemView.findViewById(R.id.tvUserName);
-            tvRating = itemView.findViewById(R.id.tvRating);
-            tvComment = itemView.findViewById(R.id.tvComment);
-            tvDate = itemView.findViewById(R.id.tvDate);
+            tvReviewerName = itemView.findViewById(R.id.tvReviewerName);
+            tvReviewDate = itemView.findViewById(R.id.tvReviewDate);
+            tvReviewStars = itemView.findViewById(R.id.tvReviewStars);
+            tvReviewComment = itemView.findViewById(R.id.tvReviewComment);
         }
     }
 }

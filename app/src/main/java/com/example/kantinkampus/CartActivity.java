@@ -1,9 +1,10 @@
 package com.example.kantinkampus;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
@@ -18,15 +19,20 @@ public class CartActivity extends AppCompatActivity implements CartAdapter.OnCar
     private RecyclerView rvCart;
     private CartAdapter cartAdapter;
     private DBHelper dbHelper;
+    private SessionManager sessionManager;
     private TextView tvTotal, btnCheckout;
     private LinearLayout tvEmptyCart, layoutCheckout;
+    private int userId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cart);
 
+        // Initialize
+        sessionManager = new SessionManager(this);
         dbHelper = new DBHelper(this);
+        userId = sessionManager.getUserId();
 
         rvCart = findViewById(R.id.rvCart);
         tvTotal = findViewById(R.id.tvTotal);
@@ -41,17 +47,13 @@ public class CartActivity extends AppCompatActivity implements CartAdapter.OnCar
         btnCheckout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Use CheckoutActivity for better experience
-                goToCheckout();
-
-                // Or use direct checkout without separate activity
-                // checkoutDirect();
+                showPaymentMethodDialog();
             }
         });
     }
 
     private void loadCart() {
-        List<CartItem> cartItems = dbHelper.getCartItems();
+        List<CartItem> cartItems = dbHelper.getCartItems(userId);
 
         if (cartItems.isEmpty()) {
             rvCart.setVisibility(View.GONE);
@@ -84,108 +86,85 @@ public class CartActivity extends AppCompatActivity implements CartAdapter.OnCar
         loadCart();
     }
 
-    private void goToCheckout() {
-        List<CartItem> cartItems = dbHelper.getCartItems();
+    private void showPaymentMethodDialog() {
+        List<CartItem> cartItems = dbHelper.getCartItems(userId);
         if (cartItems.isEmpty()) {
             Toast.makeText(this, "Keranjang kosong", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Go to checkout activity
-        Intent intent = new Intent(CartActivity.this, CheckoutActivity.class);
-        startActivity(intent);
-    }
+        // Get stand ID from first item (all items should be from same stand)
+        int standId = cartItems.get(0).getMenu().getStandId();
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        loadCart();
-    }
+        // Create payment method dialog
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_payment_method, null);
+        RadioGroup rgPaymentMethod = dialogView.findViewById(R.id.rgPaymentMethod);
 
-    // Alternative simple checkout (without CheckoutActivity)
-    private void checkoutDirect() {
-        List<CartItem> cartItems = dbHelper.getCartItems();
-        if (cartItems.isEmpty()) {
-            Toast.makeText(this, "Keranjang kosong", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Calculate total
-        int total = 0;
-        StringBuilder items = new StringBuilder();
-        String standName = "";
-
-        for (CartItem item : cartItems) {
-            total += item.getSubtotal();
-            items.append(item.getMenu().getNama())
-                    .append(" (")
-                    .append(item.getQty())
-                    .append("x)\n");
-
-            // Get stand name from first item
-            if (standName.isEmpty()) {
-                standName = getStandNameByMenuId(item.getMenu().getStandId());
-            }
-        }
-
-        // Show confirmation dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("✅ Konfirmasi Pesanan");
-        builder.setMessage("Total: " + NumberFormat.getCurrencyInstance(new Locale("id", "ID")).format(total) + "\n\nLanjutkan pesanan?");
+        builder.setTitle("💳 Pilih Metode Pembayaran");
+        builder.setView(dialogView);
 
-        final int finalTotal = total;
-        final String finalItems = items.toString();
-        final String finalStandName = standName;
-
-        builder.setPositiveButton("Ya, Pesan! 🍽️", (dialog, which) -> {
-            // Create order in database
-            long orderId = dbHelper.createOrder(
-                    "Customer", // Default customer name
-                    finalStandName,
-                    finalItems,
-                    finalTotal,
-                    "Cash", // Default payment method
-                    "" // No notes
-            );
-
-            // Add order items
-            for (CartItem item : cartItems) {
-                dbHelper.addOrderItem(
-                        (int) orderId,
-                        item.getMenu().getId(),
-                        item.getMenu().getNama(),
-                        item.getQty(),
-                        item.getMenu().getHarga()
-                );
+        builder.setPositiveButton("Lanjutkan", (dialog, which) -> {
+            int selectedId = rgPaymentMethod.getCheckedRadioButtonId();
+            if (selectedId == -1) {
+                Toast.makeText(this, "Pilih metode pembayaran terlebih dahulu", Toast.LENGTH_SHORT).show();
+                return;
             }
 
-            // Save to history (backward compatibility)
-            dbHelper.addToHistory(finalItems, finalTotal);
+            RadioButton selectedRadio = dialogView.findViewById(selectedId);
+            String paymentMethod = selectedRadio.getText().toString();
 
-            // Clear cart
-            dbHelper.clearCart();
-
-            // Show success message
-            Toast.makeText(CartActivity.this, "✅ Pesanan berhasil! Order #" + orderId, Toast.LENGTH_LONG).show();
-
-            // Reload cart
-            loadCart();
-
-            // Close activity after delay
-            new android.os.Handler().postDelayed(() -> finish(), 1500);
+            checkout(standId, paymentMethod);
         });
 
         builder.setNegativeButton("Batal", null);
         builder.show();
     }
 
-    private String getStandNameByMenuId(int standId) {
-        List<Stand> stands = dbHelper.getAllStands();
-        for (Stand stand : stands) {
-            if (stand.getId() == standId) {
-                return stand.getNama();
-            }
+    private void checkout(int standId, String paymentMethod) {
+        List<CartItem> cartItems = dbHelper.getCartItems(userId);
+
+        // Calculate total
+        int total = 0;
+        for (CartItem item : cartItems) {
+            total += item.getSubtotal();
         }
-        return "Stand";
+
+        // Show confirmation
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("✅ Konfirmasi Pesanan");
+
+        NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
+        String message = "Total: " + formatter.format(total) + "\n" +
+                "Pembayaran: " + paymentMethod + "\n\n" +
+                "Lanjutkan pesanan?";
+
+        builder.setMessage(message);
+
+        builder.setPositiveButton("Ya, Pesan! 🍽️", (dialog, which) -> {
+            // Create order
+            long orderId = dbHelper.createOrderFromCart(userId, standId, paymentMethod, null);
+
+            if (orderId > 0) {
+                // Show success message
+                Toast.makeText(CartActivity.this,
+                        "✅ Pesanan berhasil!\n" +
+                                "Pesanan #" + orderId + " sedang diproses... 🍽️",
+                        Toast.LENGTH_LONG).show();
+
+                // Reload cart
+                loadCart();
+
+                // Close activity after delay
+                new android.os.Handler().postDelayed(() -> finish(), 1500);
+            } else {
+                Toast.makeText(CartActivity.this,
+                        "❌ Gagal membuat pesanan. Coba lagi.",
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.setNegativeButton("Batal", null);
+        builder.show();
     }
 }
