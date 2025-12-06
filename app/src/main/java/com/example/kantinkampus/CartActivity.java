@@ -100,25 +100,58 @@ public class CartActivity extends AppCompatActivity implements CartAdapter.OnCar
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_payment_method, null);
         RadioGroup rgPaymentMethod = dialogView.findViewById(R.id.rgPaymentMethod);
 
+        // Set default selection to Cash (first option)
+        RadioButton rbCash = dialogView.findViewById(R.id.rbCash);
+        rbCash.setChecked(true);
+
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("💳 Pilih Metode Pembayaran");
         builder.setView(dialogView);
 
         builder.setPositiveButton("Lanjutkan", (dialog, which) -> {
+            // Get selected radio button ID
             int selectedId = rgPaymentMethod.getCheckedRadioButtonId();
+
             if (selectedId == -1) {
-                Toast.makeText(this, "Pilih metode pembayaran terlebih dahulu", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "⚠️ Pilih metode pembayaran terlebih dahulu",
+                        Toast.LENGTH_SHORT).show();
                 return;
             }
 
+            // Get the selected radio button
             RadioButton selectedRadio = dialogView.findViewById(selectedId);
+            if (selectedRadio == null) {
+                Toast.makeText(this, "⚠️ Error: Metode pembayaran tidak valid",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Get payment method text
             String paymentMethod = selectedRadio.getText().toString();
+
+            // Remove emoji from payment method name for cleaner storage
+            // Example: "💵 Cash (Tunai)" becomes "Cash"
+            if (paymentMethod.contains(" ")) {
+                String[] parts = paymentMethod.split(" ", 2);
+                if (parts.length > 1) {
+                    // Get the second part (after emoji)
+                    paymentMethod = parts[1];
+                    // Remove text in parentheses if exists
+                    if (paymentMethod.contains("(")) {
+                        paymentMethod = paymentMethod.substring(0, paymentMethod.indexOf("(")).trim();
+                    }
+                }
+            }
 
             checkout(standId, paymentMethod);
         });
 
         builder.setNegativeButton("Batal", null);
-        builder.show();
+
+        // Show dialog and ensure it's cancellable
+        AlertDialog dialog = builder.create();
+        dialog.setCancelable(true);
+        dialog.show();
     }
 
     private void checkout(int standId, String paymentMethod) {

@@ -41,8 +41,14 @@ public class MenuListActivity extends AppCompatActivity implements MenuAdapter.O
         String standNama = getIntent().getStringExtra("stand_nama");
         String standDeskripsi = getIntent().getStringExtra("stand_deskripsi");
 
-        tvStandName.setText(standNama);
-        tvStandDesc.setText(standDeskripsi);
+        if (standId == 0) {
+            Toast.makeText(this, "❌ Error: Stand tidak ditemukan", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        tvStandName.setText(standNama != null ? standNama : "Stand");
+        tvStandDesc.setText(standDeskripsi != null ? standDeskripsi : "");
 
         rvMenu.setLayoutManager(new GridLayoutManager(this, 2));
 
@@ -57,19 +63,48 @@ public class MenuListActivity extends AppCompatActivity implements MenuAdapter.O
         });
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Reload menu when returning (in case favorites changed)
+        loadMenu();
+    }
+
     private void loadMenu() {
-        List<Menu> menus = dbHelper.getMenuByStandId(standId, userId);
-        menuAdapter = new MenuAdapter(this, menus, this);
-        rvMenu.setAdapter(menuAdapter);
+        try {
+            List<Menu> menus = dbHelper.getMenuByStandId(standId, userId);
+
+            if (menus == null || menus.isEmpty()) {
+                Toast.makeText(this, "ℹ️ Belum ada menu di stand ini",
+                        Toast.LENGTH_SHORT).show();
+            }
+
+            menuAdapter = new MenuAdapter(this, menus, this);
+            rvMenu.setAdapter(menuAdapter);
+        } catch (Exception e) {
+            Toast.makeText(this, "❌ Error loading menu: " + e.getMessage(),
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
     public void onAddToCart(Menu menu) {
-        if (menu.isAvailable()) {
-            dbHelper.addToCart(userId, menu.getId(), 1, null);
-            Toast.makeText(this, "✅ " + menu.getNama() + " ditambahkan!", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(this, "❌ Menu tidak tersedia", Toast.LENGTH_SHORT).show();
+        try {
+            if (menu == null) {
+                Toast.makeText(this, "❌ Error: Menu tidak valid", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (menu.isAvailable()) {
+                dbHelper.addToCart(userId, menu.getId(), 1, null);
+                Toast.makeText(this, "✅ " + menu.getNama() + " ditambahkan ke keranjang!",
+                        Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "❌ " + menu.getNama() + " sedang tidak tersedia",
+                        Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, "❌ Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 }

@@ -52,6 +52,14 @@ public class RegisterActivity extends AppCompatActivity {
         layoutNimNip = findViewById(R.id.layoutNimNip);
         layoutAdminCode = findViewById(R.id.layoutAdminCode);
 
+        // Set default state
+        rbCustomer.setChecked(true);
+        rbMahasiswa.setChecked(true);
+        layoutCustomerType.setVisibility(View.VISIBLE);
+        layoutNimNip.setVisibility(View.VISIBLE);
+        layoutAdminCode.setVisibility(View.GONE);
+        updateNimNipLabel();
+
         // Setup listeners
         setupRoleListener();
         setupCustomerTypeListener();
@@ -80,12 +88,19 @@ public class RegisterActivity extends AppCompatActivity {
                     layoutCustomerType.setVisibility(View.VISIBLE);
                     layoutNimNip.setVisibility(View.VISIBLE);
                     layoutAdminCode.setVisibility(View.GONE);
+
+                    // Set default to Mahasiswa
+                    rbMahasiswa.setChecked(true);
                     updateNimNipLabel();
+
                 } else if (checkedId == R.id.rbAdmin) {
-                    // Show admin-specific fields
+                    // Show admin-specific fields, HIDE customer fields
                     layoutCustomerType.setVisibility(View.GONE);
                     layoutNimNip.setVisibility(View.GONE);
                     layoutAdminCode.setVisibility(View.VISIBLE);
+
+                    // Clear customer type selection
+                    rgCustomerType.clearCheck();
                 }
             }
         });
@@ -95,7 +110,10 @@ public class RegisterActivity extends AppCompatActivity {
         rgCustomerType.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
-                updateNimNipLabel();
+                // Only update if customer is selected
+                if (rbCustomer.isChecked()) {
+                    updateNimNipLabel();
+                }
             }
         });
     }
@@ -135,6 +153,7 @@ public class RegisterActivity extends AppCompatActivity {
         String type = null;
 
         if (rbCustomer.isChecked()) {
+            // Customer validation
             type = rbMahasiswa.isChecked() ? "mahasiswa" : "dosen";
 
             // Validate NIM/NIP for customer
@@ -144,15 +163,20 @@ public class RegisterActivity extends AppCompatActivity {
                 cancel = true;
             }
         } else {
+            // Admin validation
+            type = null; // Admin doesn't have type
+
             // Validate admin code
             if (TextUtils.isEmpty(adminCode)) {
                 etAdminCode.setError("Kode admin tidak boleh kosong");
                 focusView = etAdminCode;
                 cancel = true;
             } else if (!adminCode.equals(ADMIN_CODE)) {
-                etAdminCode.setError("Kode admin tidak valid");
+                etAdminCode.setError("❌ Kode admin tidak valid!");
                 focusView = etAdminCode;
                 cancel = true;
+                Toast.makeText(this, "Kode admin salah! Hubungi superadmin.",
+                        Toast.LENGTH_LONG).show();
             }
         }
 
@@ -208,17 +232,22 @@ public class RegisterActivity extends AppCompatActivity {
         long result = dbHelper.registerUser(email, password, name, role, phone, nimNip, type);
 
         if (result > 0) {
-            String roleText = role.equals("admin") ? "Admin" :
-                    (type.equals("mahasiswa") ? "Mahasiswa" : "Dosen");
+            String roleText;
+            if (role.equals("admin")) {
+                roleText = "Admin";
+            } else {
+                roleText = type.equals("mahasiswa") ? "Mahasiswa" : "Dosen";
+            }
 
-            Toast.makeText(this, "✅ Registrasi berhasil sebagai " + roleText + "!\nSilakan login.",
+            Toast.makeText(this, "✅ Registrasi berhasil sebagai " + roleText + "!\n" +
+                            "Silakan login dengan akun Anda.",
                     Toast.LENGTH_LONG).show();
 
             // Redirect to login
             finish();
         } else {
-            Toast.makeText(this, "❌ Email sudah terdaftar. Gunakan email lain.",
-                    Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "❌ Email sudah terdaftar!\nGunakan email lain atau login.",
+                    Toast.LENGTH_LONG).show();
         }
     }
 
