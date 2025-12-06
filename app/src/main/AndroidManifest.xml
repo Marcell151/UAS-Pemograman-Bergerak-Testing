@@ -10,8 +10,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
 
+        <!-- MAIN LAUNCHER - LoginActivity -->
         <activity
-            android:name=".MainActivity"
+            android:name=".LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -19,25 +20,86 @@
             </intent-filter>
         </activity>
 
+        <!-- Authentication Activities -->
+        <activity
+            android:name=".RegisterActivity"
+            android:parentActivityName=".LoginActivity"
+            android:exported="false" />
+
+        <!-- Admin Activities -->
+        <activity
+            android:name=".AdminDashboardActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ManageOrdersActivity"
+            android:parentActivityName=".AdminDashboardActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ManageStandsActivity"
+            android:parentActivityName=".AdminDashboardActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ManageMenusActivity"
+            android:parentActivityName=".AdminDashboardActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ViewCustomersActivity"
+            android:parentActivityName=".AdminDashboardActivity"
+            android:exported="false" />
+
+        <!-- Customer Activities -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
+
         <activity
             android:name=".StandListActivity"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName=".MainActivity"
+            android:exported="false" />
 
         <activity
             android:name=".MenuListActivity"
-            android:parentActivityName=".StandListActivity" />
+            android:parentActivityName=".StandListActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".MenuDetailActivity"
+            android:parentActivityName=".MenuListActivity"
+            android:exported="false" />
 
         <activity
             android:name=".CartActivity"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName=".MainActivity"
+            android:exported="false" />
 
         <activity
-            android:name=".HistoryActivity"
-            android:parentActivityName=".MainActivity" />
+            android:name=".OrderHistoryActivity"
+            android:parentActivityName=".MainActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".FavoritesActivity"
+            android:parentActivityName=".MainActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".AddReviewActivity"
+            android:parentActivityName=".MenuDetailActivity"
+            android:exported="false" />
 
         <activity
             android:name=".AboutActivity"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName=".MainActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".HistoryActivity"
+            android:parentActivityName=".MainActivity"
+            android:exported="false" />
 
     </application>
 
