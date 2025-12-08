@@ -1,5 +1,6 @@
 package com.example.kantinkampus;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -14,7 +15,8 @@ public class LoginActivity extends AppCompatActivity {
     private static final String TAG = "LoginActivity";
 
     private EditText etEmail, etPassword;
-    private TextView btnLogin, tvRegister;
+    private View btnLogin; // Ubah ke View (atau TextView) agar aman untuk XML Anda
+    private TextView tvRegister;
     private DBHelper dbHelper;
     private SessionManager sessionManager;
 
@@ -22,158 +24,87 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        try {
-            Log.d(TAG, "onCreate started");
+        // Initialize SessionManager and DBHelper
+        sessionManager = new SessionManager(this);
+        dbHelper = new DBHelper(this);
 
-            // Initialize SessionManager and DBHelper
-            sessionManager = new SessionManager(this);
-            dbHelper = new DBHelper(this);
-
-            Log.d(TAG, "SessionManager and DBHelper initialized");
-
-            // Check if user already logged in
-            if (sessionManager.isLoggedIn()) {
-                Log.d(TAG, "User already logged in, redirecting...");
-                redirectToHome();
-                return;
-            }
-
-            setContentView(R.layout.activity_login);
-            Log.d(TAG, "Layout set successfully");
-
-            // Initialize views
-            etEmail = findViewById(R.id.etEmail);
-            etPassword = findViewById(R.id.etPassword);
-            btnLogin = findViewById(R.id.btnLogin);
-            tvRegister = findViewById(R.id.tvRegister);
-
-            Log.d(TAG, "Views initialized");
-
-            // Set listeners
-            btnLogin.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    attemptLogin();
-                }
-            });
-
-            tvRegister.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
-                    startActivity(intent);
-                }
-            });
-
-            Log.d(TAG, "Listeners set successfully");
-
-        } catch (Exception e) {
-            Log.e(TAG, "Error in onCreate: " + e.getMessage(), e);
-            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        // Check if user already logged in
+        if (sessionManager.isLoggedIn()) {
+            redirectToHome();
+            return;
         }
-    }
 
-    private void attemptLogin() {
-        try {
-            // Reset errors
-            etEmail.setError(null);
-            etPassword.setError(null);
+        setContentView(R.layout.activity_login);
 
-            // Get values
+        // Initialize views
+        etEmail = findViewById(R.id.etEmail);
+        etPassword = findViewById(R.id.etPassword);
+
+        // PERBAIKAN 1: Menggunakan View agar cocok baik itu CardView maupun TextView
+        btnLogin = findViewById(R.id.btnLogin);
+
+        tvRegister = findViewById(R.id.tvRegister);
+
+        // Login Button Click
+        btnLogin.setOnClickListener(v -> {
             String email = etEmail.getText().toString().trim();
             String password = etPassword.getText().toString().trim();
 
-            boolean cancel = false;
-            View focusView = null;
-
-            // Validate password
-            if (TextUtils.isEmpty(password)) {
-                etPassword.setError("Password tidak boleh kosong");
-                focusView = etPassword;
-                cancel = true;
-            } else if (password.length() < 6) {
-                etPassword.setError("Password minimal 6 karakter");
-                focusView = etPassword;
-                cancel = true;
-            }
-
-            // Validate email
-            if (TextUtils.isEmpty(email)) {
-                etEmail.setError("Email tidak boleh kosong");
-                focusView = etEmail;
-                cancel = true;
-            } else if (!isEmailValid(email)) {
-                etEmail.setError("Format email tidak valid");
-                focusView = etEmail;
-                cancel = true;
-            }
-
-            if (cancel) {
-                focusView.requestFocus();
+            if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password)) {
+                Toast.makeText(LoginActivity.this, "Email dan Password wajib diisi!", Toast.LENGTH_SHORT).show();
             } else {
                 performLogin(email, password);
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error in attemptLogin: " + e.getMessage(), e);
-            Toast.makeText(this, "Error saat login: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
+        });
+
+        // Register Link Click
+        tvRegister.setOnClickListener(v -> {
+            Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void performLogin(String email, String password) {
         try {
+            // Cek login via database
             User user = dbHelper.loginUser(email, password);
 
             if (user != null) {
-                Log.d(TAG, "Login successful for user: " + user.getName());
-
-                // Save session
+                // Login sukses, simpan sesi
                 sessionManager.createLoginSession(user);
-
-                // Show success message
-                Toast.makeText(this, "✅ Login berhasil! Selamat datang, " + user.getName(),
-                        Toast.LENGTH_SHORT).show();
-
-                // Redirect based on role
+                Toast.makeText(this, "✅ Login Berhasil! Selamat datang, " + user.getName(), Toast.LENGTH_SHORT).show();
                 redirectToHome();
-                finish();
             } else {
-                Log.d(TAG, "Login failed - incorrect credentials");
-                Toast.makeText(this, "❌ Email atau password salah!",
-                        Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "❌ Email atau password salah!", Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error in performLogin: " + e.getMessage(), e);
-            Toast.makeText(this, "Error saat memproses login: " + e.getMessage(),
-                    Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Error login: " + e.getMessage());
+            Toast.makeText(this, "Terjadi kesalahan sistem", Toast.LENGTH_SHORT).show();
         }
     }
 
     private void redirectToHome() {
-        try {
-            Intent intent;
-            if (sessionManager.isAdmin()) {
-                Log.d(TAG, "Redirecting to Admin Dashboard");
-                intent = new Intent(LoginActivity.this, AdminDashboardActivity.class);
-            } else {
-                Log.d(TAG, "Redirecting to Customer Home");
-                intent = new Intent(LoginActivity.this, MainActivity.class);
-            }
-            startActivity(intent);
-            finish();
-        } catch (Exception e) {
-            Log.e(TAG, "Error in redirectToHome: " + e.getMessage(), e);
-            Toast.makeText(this, "Error saat redirect: " + e.getMessage(),
-                    Toast.LENGTH_SHORT).show();
+        Intent intent;
+        // LOGIKA BARU: Cek Seller atau Buyer
+        if (sessionManager.isSeller()) {
+            // Jika Penjual -> Masuk ke Dashboard Penjual
+            intent = new Intent(LoginActivity.this, SellerDashboardActivity.class);
+        } else {
+            // Jika Pembeli -> Masuk ke Halaman Utama Customer
+            intent = new Intent(LoginActivity.this, MainActivity.class);
         }
+
+        // Clear back stack agar tidak bisa back ke login
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
-    private boolean isEmailValid(String email) {
-        return email.contains("@") && email.contains(".");
-    }
-
+    // PERBAIKAN 2: Tambahkan SuppressLint agar tidak merah
+    @SuppressLint("MissingSuperCall")
     @Override
     public void onBackPressed() {
-        // Disable back button on login screen
+        // Disable back button (Minimize app)
         moveTaskToBack(true);
     }
 }

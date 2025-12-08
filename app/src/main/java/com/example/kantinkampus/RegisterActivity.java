@@ -11,16 +11,20 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 
 public class RegisterActivity extends AppCompatActivity {
-    private RadioGroup rgRole, rgCustomerType;
-    private RadioButton rbCustomer, rbAdmin, rbMahasiswa, rbDosen;
-    private EditText etName, etEmail, etPassword, etPhone, etNimNip, etAdminCode;
-    private TextView btnRegister, tvLogin, tvNimNipLabel;
-    private LinearLayout layoutCustomerType, layoutNimNip, layoutAdminCode;
+
+    // UI Components
+    private RadioGroup rgRole, rgBuyerType;
+    private RadioButton rbBuyer, rbSeller, rbMahasiswa, rbDosen;
+    private EditText etName, etEmail, etPhone, etPassword;
+    private EditText etNimNip, etBusinessLicense;
+    private LinearLayout layoutBuyerFields, layoutSellerFields;
+    private CardView btnRegister;
+    private TextView tvLogin;
 
     private DBHelper dbHelper;
-    private static final String ADMIN_CODE = "ADMIN2024"; // Kode rahasia untuk admin
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,171 +33,74 @@ public class RegisterActivity extends AppCompatActivity {
 
         dbHelper = new DBHelper(this);
 
-        // Initialize views
+        // Initialize Views
         rgRole = findViewById(R.id.rgRole);
-        rgCustomerType = findViewById(R.id.rgCustomerType);
-        rbCustomer = findViewById(R.id.rbCustomer);
-        rbAdmin = findViewById(R.id.rbAdmin);
+        rgBuyerType = findViewById(R.id.rgBuyerType);
+        rbBuyer = findViewById(R.id.rbBuyer);
+        rbSeller = findViewById(R.id.rbSeller);
         rbMahasiswa = findViewById(R.id.rbMahasiswa);
         rbDosen = findViewById(R.id.rbDosen);
 
         etName = findViewById(R.id.etName);
         etEmail = findViewById(R.id.etEmail);
-        etPassword = findViewById(R.id.etPassword);
         etPhone = findViewById(R.id.etPhone);
+        etPassword = findViewById(R.id.etPassword);
+
+        // Conditional Fields
         etNimNip = findViewById(R.id.etNimNip);
-        etAdminCode = findViewById(R.id.etAdminCode);
+        etBusinessLicense = findViewById(R.id.etBusinessLicense);
+
+        // Layout Containers
+        layoutBuyerFields = findViewById(R.id.layoutBuyerFields);
+        layoutSellerFields = findViewById(R.id.layoutSellerFields);
 
         btnRegister = findViewById(R.id.btnRegister);
         tvLogin = findViewById(R.id.tvLogin);
-        tvNimNipLabel = findViewById(R.id.tvNimNipLabel);
 
-        layoutCustomerType = findViewById(R.id.layoutCustomerType);
-        layoutNimNip = findViewById(R.id.layoutNimNip);
-        layoutAdminCode = findViewById(R.id.layoutAdminCode);
-
-        // Set default state
-        rbCustomer.setChecked(true);
-        rbMahasiswa.setChecked(true);
-        layoutCustomerType.setVisibility(View.VISIBLE);
-        layoutNimNip.setVisibility(View.VISIBLE);
-        layoutAdminCode.setVisibility(View.GONE);
-        updateNimNipLabel();
-
-        // Setup listeners
-        setupRoleListener();
-        setupCustomerTypeListener();
-
-        btnRegister.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                attemptRegister();
+        // Listener untuk Pilihan Role (Penjual vs Pembeli)
+        rgRole.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.rbSeller) {
+                // Jika pilih Penjual: Sembunyikan field pembeli, Tampilkan field penjual
+                layoutBuyerFields.setVisibility(View.GONE);
+                layoutSellerFields.setVisibility(View.VISIBLE);
+            } else {
+                // Jika pilih Pembeli: Sebaliknya
+                layoutBuyerFields.setVisibility(View.VISIBLE);
+                layoutSellerFields.setVisibility(View.GONE);
             }
         });
 
-        tvLogin.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-            }
-        });
+        // Listener Tombol Register
+        btnRegister.setOnClickListener(v -> validateAndRegister());
+
+        // Listener Link Login
+        tvLogin.setOnClickListener(v -> finish());
     }
 
-    private void setupRoleListener() {
-        rgRole.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup group, int checkedId) {
-                if (checkedId == R.id.rbCustomer) {
-                    // Show customer-specific fields
-                    layoutCustomerType.setVisibility(View.VISIBLE);
-                    layoutNimNip.setVisibility(View.VISIBLE);
-                    layoutAdminCode.setVisibility(View.GONE);
-
-                    // Set default to Mahasiswa
-                    rbMahasiswa.setChecked(true);
-                    updateNimNipLabel();
-
-                } else if (checkedId == R.id.rbAdmin) {
-                    // Show admin-specific fields, HIDE customer fields
-                    layoutCustomerType.setVisibility(View.GONE);
-                    layoutNimNip.setVisibility(View.GONE);
-                    layoutAdminCode.setVisibility(View.VISIBLE);
-
-                    // Clear customer type selection
-                    rgCustomerType.clearCheck();
-                }
-            }
-        });
-    }
-
-    private void setupCustomerTypeListener() {
-        rgCustomerType.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup group, int checkedId) {
-                // Only update if customer is selected
-                if (rbCustomer.isChecked()) {
-                    updateNimNipLabel();
-                }
-            }
-        });
-    }
-
-    private void updateNimNipLabel() {
-        if (rbMahasiswa.isChecked()) {
-            tvNimNipLabel.setText("NIM (Nomor Induk Mahasiswa)");
-            etNimNip.setHint("Masukkan NIM");
-        } else if (rbDosen.isChecked()) {
-            tvNimNipLabel.setText("NIP (Nomor Induk Pegawai)");
-            etNimNip.setHint("Masukkan NIP");
-        }
-    }
-
-    private void attemptRegister() {
-        // Reset errors
+    private void validateAndRegister() {
+        // Reset Errors
         etName.setError(null);
         etEmail.setError(null);
         etPassword.setError(null);
-        etPhone.setError(null);
         etNimNip.setError(null);
-        etAdminCode.setError(null);
+        etBusinessLicense.setError(null);
 
-        // Get values
+        // Get Values
         String name = etName.getText().toString().trim();
         String email = etEmail.getText().toString().trim();
-        String password = etPassword.getText().toString().trim();
         String phone = etPhone.getText().toString().trim();
-        String nimNip = etNimNip.getText().toString().trim();
-        String adminCode = etAdminCode.getText().toString().trim();
+        String password = etPassword.getText().toString().trim();
 
+        boolean isSeller = rbSeller.isChecked();
+        String role = isSeller ? "seller" : "buyer";
+
+        // Validation Flags
         boolean cancel = false;
         View focusView = null;
 
-        // Determine role and type
-        String role = rbCustomer.isChecked() ? "customer" : "admin";
-        String type = null;
-
-        if (rbCustomer.isChecked()) {
-            // Customer validation
-            type = rbMahasiswa.isChecked() ? "mahasiswa" : "dosen";
-
-            // Validate NIM/NIP for customer
-            if (TextUtils.isEmpty(nimNip)) {
-                etNimNip.setError("NIM/NIP tidak boleh kosong");
-                focusView = etNimNip;
-                cancel = true;
-            }
-        } else {
-            // Admin validation
-            type = null; // Admin doesn't have type
-
-            // Validate admin code
-            if (TextUtils.isEmpty(adminCode)) {
-                etAdminCode.setError("Kode admin tidak boleh kosong");
-                focusView = etAdminCode;
-                cancel = true;
-            } else if (!adminCode.equals(ADMIN_CODE)) {
-                etAdminCode.setError("❌ Kode admin tidak valid!");
-                focusView = etAdminCode;
-                cancel = true;
-                Toast.makeText(this, "Kode admin salah! Hubungi superadmin.",
-                        Toast.LENGTH_LONG).show();
-            }
-        }
-
-        // Validate phone
-        if (TextUtils.isEmpty(phone)) {
-            etPhone.setError("No. HP tidak boleh kosong");
-            focusView = etPhone;
-            cancel = true;
-        } else if (phone.length() < 10) {
-            etPhone.setError("No. HP minimal 10 digit");
-            focusView = etPhone;
-            cancel = true;
-        }
-
-        // Validate password
+        // 1. Validasi Kolom Wajib (Umum)
         if (TextUtils.isEmpty(password)) {
-            etPassword.setError("Password tidak boleh kosong");
+            etPassword.setError("Password wajib diisi");
             focusView = etPassword;
             cancel = true;
         } else if (password.length() < 6) {
@@ -202,56 +109,67 @@ public class RegisterActivity extends AppCompatActivity {
             cancel = true;
         }
 
-        // Validate email
         if (TextUtils.isEmpty(email)) {
-            etEmail.setError("Email tidak boleh kosong");
+            etEmail.setError("Email wajib diisi");
             focusView = etEmail;
             cancel = true;
-        } else if (!isEmailValid(email)) {
-            etEmail.setError("Format email tidak valid");
+        } else if (!email.contains("@")) {
+            etEmail.setError("Email tidak valid");
             focusView = etEmail;
             cancel = true;
         }
 
-        // Validate name
         if (TextUtils.isEmpty(name)) {
-            etName.setError("Nama tidak boleh kosong");
+            etName.setError("Nama wajib diisi");
             focusView = etName;
             cancel = true;
+        }
+
+        // 2. Validasi Khusus Role
+        String nimNip = null;
+        String buyerType = null;
+        String businessLicense = null;
+
+        if (isSeller) {
+            // Validasi Penjual
+            businessLicense = etBusinessLicense.getText().toString().trim();
+            if (TextUtils.isEmpty(businessLicense)) {
+                etBusinessLicense.setError("Nomor Kartu Usaha wajib diisi");
+                focusView = etBusinessLicense;
+                cancel = true;
+            }
+        } else {
+            // Validasi Pembeli
+            nimNip = etNimNip.getText().toString().trim();
+            buyerType = rbMahasiswa.isChecked() ? "mahasiswa" : "dosen";
+
+            if (TextUtils.isEmpty(nimNip)) {
+                etNimNip.setError("NIM/NIP wajib diisi");
+                focusView = etNimNip;
+                cancel = true;
+            }
         }
 
         if (cancel) {
             focusView.requestFocus();
         } else {
-            performRegister(email, password, name, role, phone, nimNip, type);
+            // Eksekusi Registrasi ke Database
+            performRegister(email, password, name, role, phone, nimNip, buyerType, businessLicense);
         }
     }
 
     private void performRegister(String email, String password, String name,
-                                 String role, String phone, String nimNip, String type) {
-        long result = dbHelper.registerUser(email, password, name, role, phone, nimNip, type);
+                                 String role, String phone, String nimNip, String type, String license) {
+
+        // Panggil method registerUser yang baru di DBHelper
+        long result = dbHelper.registerUser(email, password, name, role, phone, nimNip, type, license);
 
         if (result > 0) {
-            String roleText;
-            if (role.equals("admin")) {
-                roleText = "Admin";
-            } else {
-                roleText = type.equals("mahasiswa") ? "Mahasiswa" : "Dosen";
-            }
-
-            Toast.makeText(this, "✅ Registrasi berhasil sebagai " + roleText + "!\n" +
-                            "Silakan login dengan akun Anda.",
-                    Toast.LENGTH_LONG).show();
-
-            // Redirect to login
-            finish();
+            String roleText = role.equals("seller") ? "Penjual" : "Pembeli";
+            Toast.makeText(this, "✅ Registrasi Berhasil sebagai " + roleText + "!\nSilakan Login.", Toast.LENGTH_LONG).show();
+            finish(); // Kembali ke Login
         } else {
-            Toast.makeText(this, "❌ Email sudah terdaftar!\nGunakan email lain atau login.",
-                    Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "❌ Gagal Mendaftar! Email mungkin sudah terdaftar.", Toast.LENGTH_LONG).show();
         }
-    }
-
-    private boolean isEmailValid(String email) {
-        return email.contains("@") && email.contains(".");
     }
 }

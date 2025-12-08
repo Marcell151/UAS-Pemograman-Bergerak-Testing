@@ -39,47 +39,70 @@ public class OrderAdapterCustomer extends RecyclerView.Adapter<OrderAdapterCusto
         Order order = orders.get(position);
         NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
 
-        holder.tvOrderId.setText("#" + order.getId());
-        holder.tvOrderDate.setText(order.getCreatedAt());
-        holder.tvStandName.setText("🏪 " + order.getStandName());
+        holder.tvOrderId.setText("Order #" + order.getId());
         holder.tvOrderTotal.setText(formatter.format(order.getTotal()));
-        holder.tvOrderEmoji.setText(order.getStatusEmoji());
-        holder.tvOrderStatus.setText(order.getStatusEmoji() + " " + order.getStatusText());
 
-        // Set status color
-        int statusColor;
-        switch (order.getStatus()) {
-            case "pending":
-                statusColor = context.getResources().getColor(R.color.warning);
+        // Tampilkan Nama Stand (Penting di Multi-Seller!)
+        // DBHelper query getOrdersByUser sudah join table_stand, pastikan Order.java punya field standName?
+        // Jika belum ada di model Order, kita pakai text placeholder atau ambil dari DB lagi (tapi berat).
+        // Solusi cepat: Kita tampilkan ID Stand atau teks generik jika model belum support nama stand.
+        holder.tvStandName.setText("Stand ID: " + order.getStandId());
+
+        // Tanggal
+        if (holder.tvOrderDate != null) {
+            holder.tvOrderDate.setText("📅 " + (order.getCreatedAt() != null ? order.getCreatedAt() : "Baru saja"));
+        }
+
+        // Status Styling
+        String status = order.getStatus();
+        String statusText = status;
+        int colorRes = R.color.gray;
+        String emoji = "📦";
+
+        switch (status) {
+            case "pending_payment":
+                statusText = "Belum Bayar";
+                colorRes = R.color.warning;
+                emoji = "💳";
                 break;
-            case "processing":
-                statusColor = context.getResources().getColor(R.color.info);
+            case "pending_verification":
+                statusText = "Verifikasi";
+                colorRes = R.color.info;
+                emoji = "⏳";
+                break;
+            case "cooking":
+                statusText = "Dimasak";
+                colorRes = R.color.primary;
+                emoji = "👨‍🍳";
                 break;
             case "ready":
-                statusColor = context.getResources().getColor(R.color.success);
+                statusText = "Siap Ambil!";
+                colorRes = R.color.success;
+                emoji = "🥡";
                 break;
             case "completed":
-                statusColor = context.getResources().getColor(R.color.secondary);
+                statusText = "Selesai";
+                colorRes = R.color.secondary;
+                emoji = "✅";
                 break;
             case "cancelled":
-                statusColor = context.getResources().getColor(R.color.danger);
+                statusText = "Batal";
+                colorRes = R.color.danger;
+                emoji = "❌";
                 break;
-            default:
-                statusColor = context.getResources().getColor(R.color.text_gray);
         }
-        holder.cardStatus.setCardBackgroundColor(statusColor);
 
+        holder.tvOrderStatus.setText(statusText);
+        holder.cardStatus.setCardBackgroundColor(context.getResources().getColor(colorRes));
+        if(holder.tvOrderEmoji != null) holder.tvOrderEmoji.setText(emoji);
+
+        // Click Listener
         holder.itemView.setOnClickListener(v -> listener.onOrderClick(order));
     }
 
     @Override
     public int getItemCount() {
         return orders.size();
-    }
-
-    public void updateOrders(List<Order> newOrders) {
-        this.orders = newOrders;
-        notifyDataSetChanged();
     }
 
     public static class OrderViewHolder extends RecyclerView.ViewHolder {
@@ -90,7 +113,7 @@ public class OrderAdapterCustomer extends RecyclerView.Adapter<OrderAdapterCusto
             super(itemView);
             tvOrderId = itemView.findViewById(R.id.tvOrderId);
             tvOrderDate = itemView.findViewById(R.id.tvOrderDate);
-            tvStandName = itemView.findViewById(R.id.tvStandName);
+            tvStandName = itemView.findViewById(R.id.tvStandName); // Pastikan ID ini ada di XML
             tvOrderTotal = itemView.findViewById(R.id.tvOrderTotal);
             tvOrderStatus = itemView.findViewById(R.id.tvOrderStatus);
             tvOrderEmoji = itemView.findViewById(R.id.tvOrderEmoji);

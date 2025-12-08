@@ -261,7 +261,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Admin:\nadmin@kantinkampus.com / admin123"
+                        android:text="Penjual 1:\npenjual01@gmail.com / user123"
                         android:textSize="13sp"
                         android:textColor="@color/text_dark"
                         android:lineSpacingExtra="4dp"
@@ -270,7 +270,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Customer (Mahasiswa):\nmahasiswa@example.com / customer123"
+                        android:text="Penjual 2:\npenjual02@gmail.com / user123"
                         android:textSize="13sp"
                         android:textColor="@color/text_dark"
                         android:lineSpacingExtra="4dp"
@@ -279,7 +279,16 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Customer (Dosen):\ndosen@example.com / customer123"
+                        android:text="Pembeli 1 (Mahasiswa):\npembeli01@gmail.com / user123"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_dark"
+                        android:lineSpacingExtra="4dp"
+                        android:layout_marginBottom="8dp"/>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Pembeli 2 (Dosen):\npembeli02@gmail.com / user123"
                         android:textSize="13sp"
                         android:textColor="@color/text_dark"
                         android:lineSpacingExtra="4dp"/>

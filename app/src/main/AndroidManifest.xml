@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.kantinkampus">
 
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -28,28 +29,24 @@
 
         <!-- Admin Activities -->
         <activity
-            android:name=".AdminDashboardActivity"
+            android:name=".SellerDashboardActivity"
             android:exported="false" />
 
         <activity
             android:name=".ManageOrdersActivity"
-            android:parentActivityName=".AdminDashboardActivity"
+            android:parentActivityName=".SellerDashboardActivity"
             android:exported="false" />
 
         <activity
-            android:name=".ManageStandsActivity"
-            android:parentActivityName=".AdminDashboardActivity"
+            android:name=".ManageStandActivity"
+            android:parentActivityName=".SellerDashboardActivity"
             android:exported="false" />
 
         <activity
             android:name=".ManageMenusActivity"
-            android:parentActivityName=".AdminDashboardActivity"
+            android:parentActivityName=".SellerDashboardActivity"
             android:exported="false" />
 
-        <activity
-            android:name=".ViewCustomersActivity"
-            android:parentActivityName=".AdminDashboardActivity"
-            android:exported="false" />
 
         <!-- Customer Activities -->
         <activity
@@ -96,10 +93,6 @@
             android:parentActivityName=".MainActivity"
             android:exported="false" />
 
-        <activity
-            android:name=".HistoryActivity"
-            android:parentActivityName=".MainActivity"
-            android:exported="false" />
 
     </application>
 

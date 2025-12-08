@@ -5,12 +5,11 @@
     android:layout_height="match_parent"
     android:background="@color/background">
 
-    <!-- Header -->
     <RelativeLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
         android:layout_height="180dp"
-        android:background="@color/primary_dark"
+        android:background="@color/primary"
         android:paddingStart="24dp"
         android:paddingEnd="24dp"
         android:paddingTop="32dp"
@@ -34,7 +33,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🍽️ Kelola Menu"
+                android:text="Daftar Menu"
                 android:textSize="28sp"
                 android:textStyle="bold"
                 android:textColor="@color/white"/>
@@ -42,102 +41,45 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Tambah, edit, atau hapus menu makanan"
+                android:text="Kelola makanan dan minuman warung Anda"
                 android:textSize="14sp"
                 android:textColor="@color/white"
                 android:alpha="0.9"
-                android:layout_marginTop="8dp"/>
-
+                android:layout_marginTop="4dp"/>
         </LinearLayout>
-
     </RelativeLayout>
 
-    <!-- Stand Selector & Add Button -->
     <LinearLayout
         android:id="@+id/layoutActions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/headerLayout"
-        android:orientation="vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:padding="16dp"
         android:layout_marginTop="-30dp">
 
-        <!-- Stand Selector -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="6dp"
-            android:layout_marginBottom="12dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Pilih Stand"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_dark"
-                    android:layout_marginBottom="8dp"/>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="0dp"
-                    app:cardBackgroundColor="@color/light_gray">
-
-                    <Spinner
-                        android:id="@+id/spinnerStand"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"/>
-
-                </androidx.cardview.widget.CardView>
-
-            </LinearLayout>
-
-        </androidx.cardview.widget.CardView>
-
-        <!-- Add Menu Button -->
         <androidx.cardview.widget.CardView
             android:id="@+id/btnAddMenu"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="60dp"
             app:cardCornerRadius="16dp"
-            app:cardElevation="8dp"
-            app:cardBackgroundColor="@color/primary"
+            app:cardElevation="6dp"
+            app:cardBackgroundColor="@color/white"
             android:clickable="true"
             android:foreground="?android:attr/selectableItemBackground">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:gravity="center">
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="➕"
-                    android:textSize="24sp"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Tambah Menu Baru"
+                    android:text="➕ Tambah Menu Baru"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    android:textColor="@color/white"
-                    android:layout_marginStart="12dp"/>
+                    android:textColor="@color/success"/>
 
             </LinearLayout>
 
@@ -145,7 +87,6 @@
 
     </LinearLayout>
 
-    <!-- Menus List -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvMenus"
         android:layout_width="match_parent"
@@ -155,7 +96,6 @@
         android:clipToPadding="false"
         android:layout_marginTop="8dp"/>
 
-    <!-- Empty State -->
     <LinearLayout
         android:id="@+id/layoutEmpty"
         android:layout_width="match_parent"
@@ -184,7 +124,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Pilih stand dan tambahkan menu pertama!"
+            android:text="Tambahkan menu pertama Anda sekarang!"
             android:textSize="14sp"
             android:textColor="@color/text_gray"
             android:textAlignment="center"

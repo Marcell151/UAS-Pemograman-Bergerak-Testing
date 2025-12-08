@@ -1,6 +1,7 @@
 package com.example.kantinkampus;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,50 +40,54 @@ public class OrderAdapterAdmin extends RecyclerView.Adapter<OrderAdapterAdmin.Or
         Order order = orders.get(position);
         NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
 
-        // Set order info
-        holder.tvOrderId.setText("#" + order.getId());
-        holder.tvOrderDate.setText(order.getCreatedAt());
-        holder.tvCustomerName.setText(order.getUserName());
-        holder.tvStandName.setText("🏪 " + order.getStandName());
+        holder.tvOrderId.setText("Order #" + order.getId());
         holder.tvOrderTotal.setText(formatter.format(order.getTotal()));
-        holder.tvPaymentMethod.setText(order.getPaymentMethod());
-        holder.tvOrderEmoji.setText(order.getStatusEmoji());
 
-        // Set order items count (you can enhance this to show actual items)
-        holder.tvOrderItems.setText("Lihat detail pesanan");
+        // Tampilkan Nama Pembeli (Pastikan query JOIN di DBHelper sudah mengambil kolom 'user_name')
+        // Jika belum ada di model Order, ganti dengan User ID sementara
+        holder.tvCustomerName.setText("Customer ID: " + order.getUserId());
 
-        // Set status with color
-        holder.tvOrderStatus.setText(order.getStatusEmoji() + " " + order.getStatusText());
+        // Info Pembayaran
+        String payMethod = order.getPaymentMethod() != null ? order.getPaymentMethod().toUpperCase() : "CASH";
+        holder.tvPaymentMethod.setText(payMethod);
 
-        int statusColor;
-        switch (order.getStatus()) {
-            case "pending":
-                statusColor = context.getResources().getColor(R.color.warning);
+        // Status Styling
+        String status = order.getStatus();
+        String statusText = status;
+        int colorRes = R.color.gray; // Default
+
+        switch (status) {
+            case "pending_payment":
+                statusText = "Bayar Tunai";
+                colorRes = R.color.warning;
                 break;
-            case "processing":
-                statusColor = context.getResources().getColor(R.color.info);
+            case "pending_verification":
+                statusText = "Cek Transfer";
+                colorRes = R.color.info;
+                break;
+            case "cooking":
+                statusText = "Sedang Dimasak";
+                colorRes = R.color.primary;
                 break;
             case "ready":
-                statusColor = context.getResources().getColor(R.color.success);
+                statusText = "Siap Diambil";
+                colorRes = R.color.success;
                 break;
             case "completed":
-                statusColor = context.getResources().getColor(R.color.secondary);
+                statusText = "Selesai";
+                colorRes = R.color.secondary;
                 break;
             case "cancelled":
-                statusColor = context.getResources().getColor(R.color.danger);
+                statusText = "Dibatalkan";
+                colorRes = R.color.danger;
                 break;
-            default:
-                statusColor = context.getResources().getColor(R.color.text_gray);
         }
-        holder.cardStatus.setCardBackgroundColor(statusColor);
 
-        // Set click listener
-        holder.itemView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                listener.onOrderClick(order);
-            }
-        });
+        holder.tvOrderStatus.setText(statusText);
+        holder.cardStatus.setCardBackgroundColor(context.getResources().getColor(colorRes));
+
+        // Click Listener
+        holder.itemView.setOnClickListener(v -> listener.onOrderClick(order));
     }
 
     @Override
@@ -90,27 +95,28 @@ public class OrderAdapterAdmin extends RecyclerView.Adapter<OrderAdapterAdmin.Or
         return orders.size();
     }
 
-    public void updateOrders(List<Order> newOrders) {
-        this.orders = newOrders;
-        notifyDataSetChanged();
-    }
-
     public static class OrderViewHolder extends RecyclerView.ViewHolder {
-        TextView tvOrderId, tvOrderDate, tvCustomerName, tvStandName, tvOrderItems,
-                tvPaymentMethod, tvOrderTotal, tvOrderStatus, tvOrderEmoji;
+        TextView tvOrderId, tvCustomerName, tvPaymentMethod, tvOrderTotal, tvOrderStatus;
         CardView cardStatus;
 
         public OrderViewHolder(@NonNull View itemView) {
             super(itemView);
             tvOrderId = itemView.findViewById(R.id.tvOrderId);
-            tvOrderDate = itemView.findViewById(R.id.tvOrderDate);
             tvCustomerName = itemView.findViewById(R.id.tvCustomerName);
-            tvStandName = itemView.findViewById(R.id.tvStandName);
-            tvOrderItems = itemView.findViewById(R.id.tvOrderItems);
-            tvPaymentMethod = itemView.findViewById(R.id.tvPaymentMethod);
+            // Note: Pastikan ID ini ada di XML order_item_admin.xml
+            // Jika XML Anda menggunakan tvStandName, kita pakai itu dulu untuk nama customer
+            // atau sesuaikan ID di XML-nya.
+
+            // Menggunakan ID yang ada di XML sebelumnya:
+            // tvStandName -> Kita alihfungsikan jadi Customer Name di view admin
+            // tvOrderItems -> Kita sembunyikan atau isi "Lihat Detail"
+
+            tvCustomerName = itemView.findViewById(R.id.tvCustomerName); // Pastikan ID ini ada
+            if (tvCustomerName == null) tvCustomerName = itemView.findViewById(R.id.tvStandName); // Fallback
+
+            tvPaymentMethod = itemView.findViewById(R.id.tvPaymentMethod); // Pastikan ID ini ada
             tvOrderTotal = itemView.findViewById(R.id.tvOrderTotal);
             tvOrderStatus = itemView.findViewById(R.id.tvOrderStatus);
-            tvOrderEmoji = itemView.findViewById(R.id.tvOrderEmoji);
             cardStatus = itemView.findViewById(R.id.cardStatus);
         }
     }

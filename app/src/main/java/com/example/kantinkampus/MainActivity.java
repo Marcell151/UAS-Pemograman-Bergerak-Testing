@@ -35,8 +35,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Check if user is admin (redirect to admin dashboard)
-        if (sessionManager.isAdmin()) {
-            Intent intent = new Intent(this, AdminDashboardActivity.class);
+        if (sessionManager.isSeller()) {
+            Intent intent = new Intent(this, SellerDashboardActivity.class); // Pastikan arah ke dashboard seller
             startActivity(intent);
             finish();
             return;

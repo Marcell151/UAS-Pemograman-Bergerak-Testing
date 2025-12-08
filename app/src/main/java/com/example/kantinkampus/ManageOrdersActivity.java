@@ -1,6 +1,7 @@
 package com.example.kantinkampus;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -10,15 +11,20 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ManageOrdersActivity extends AppCompatActivity implements OrderAdapterAdmin.OnOrderClickListener {
+
     private RecyclerView rvOrders;
     private LinearLayout layoutEmpty;
+    // Filter Buttons
     private CardView btnFilterAll, btnFilterPending, btnFilterProcessing, btnFilterReady, btnFilterCompleted;
 
     private OrderAdapterAdmin adapter;
     private DBHelper dbHelper;
+    private SessionManager sessionManager;
+    private int myStandId;
     private String currentFilter = "all";
 
     @Override
@@ -27,69 +33,68 @@ public class ManageOrdersActivity extends AppCompatActivity implements OrderAdap
         setContentView(R.layout.activity_manage_orders);
 
         dbHelper = new DBHelper(this);
+        sessionManager = new SessionManager(this);
 
-        // Initialize views
+        // Ambil Stand ID Penjual
+        User user = sessionManager.getUserDetails();
+        Stand stand = dbHelper.getStandByUserId(user.getId());
+
+        if (stand == null) {
+            Toast.makeText(this, "Error: Stand tidak ditemukan", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+        myStandId = stand.getId();
+
+        // Init Views
         rvOrders = findViewById(R.id.rvOrders);
         layoutEmpty = findViewById(R.id.layoutEmpty);
+
+        // Init Filter Buttons
         btnFilterAll = findViewById(R.id.btnFilterAll);
         btnFilterPending = findViewById(R.id.btnFilterPending);
         btnFilterProcessing = findViewById(R.id.btnFilterProcessing);
         btnFilterReady = findViewById(R.id.btnFilterReady);
         btnFilterCompleted = findViewById(R.id.btnFilterCompleted);
 
-        // Setup RecyclerView
         rvOrders.setLayoutManager(new LinearLayoutManager(this));
 
-        // Setup filter buttons
-        setupFilterButtons();
+        // Set Listeners untuk Filter
+        setupFilterListeners();
 
-        // Load orders
+        // Load Data Awal
         loadOrders();
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
+    private void setupFilterListeners() {
+        btnFilterAll.setOnClickListener(v -> setFilter("all"));
+        btnFilterPending.setOnClickListener(v -> setFilter("pending_payment")); // Gabungan pending_payment & verification
+        btnFilterProcessing.setOnClickListener(v -> setFilter("cooking"));
+        btnFilterReady.setOnClickListener(v -> setFilter("ready"));
+        btnFilterCompleted.setOnClickListener(v -> setFilter("completed"));
+    }
+
+    private void setFilter(String status) {
+        currentFilter = status;
         loadOrders();
-    }
-
-    private void setupFilterButtons() {
-        btnFilterAll.setOnClickListener(v -> filterOrders("all", btnFilterAll));
-        btnFilterPending.setOnClickListener(v -> filterOrders("pending", btnFilterPending));
-        btnFilterProcessing.setOnClickListener(v -> filterOrders("processing", btnFilterProcessing));
-        btnFilterReady.setOnClickListener(v -> filterOrders("ready", btnFilterReady));
-        btnFilterCompleted.setOnClickListener(v -> filterOrders("completed", btnFilterCompleted));
-    }
-
-    private void filterOrders(String filter, CardView selectedButton) {
-        currentFilter = filter;
-
-        // Reset all buttons
-        resetFilterButtons();
-
-        // Highlight selected button
-        selectedButton.setCardBackgroundColor(getResources().getColor(R.color.white));
-
-        // Load filtered orders
-        loadOrders();
-    }
-
-    private void resetFilterButtons() {
-        int defaultColor = getResources().getColor(R.color.light_gray);
-        btnFilterAll.setCardBackgroundColor(defaultColor);
-        btnFilterPending.setCardBackgroundColor(defaultColor);
-        btnFilterProcessing.setCardBackgroundColor(defaultColor);
-        btnFilterReady.setCardBackgroundColor(defaultColor);
-        btnFilterCompleted.setCardBackgroundColor(defaultColor);
+        // Visual feedback untuk tombol aktif bisa ditambahkan di sini (opsional)
+        Toast.makeText(this, "Filter: " + status, Toast.LENGTH_SHORT).show();
     }
 
     private void loadOrders() {
-        List<Order> orders;
+        // Ambil pesanan KHUSUS stand ini
+        List<Order> orders = dbHelper.getOrdersByStand(myStandId, currentFilter);
 
-        if ("all".equals(currentFilter)) {
-            orders = dbHelper.getAllOrders();
-        } else {
-            orders = dbHelper.getOrdersByStatus(currentFilter);
+        // Filter manual untuk tab "Pending" agar mencakup 'pending_payment' DAN 'pending_verification'
+        if (currentFilter.equals("pending_payment")) {
+            List<Order> pendingOrders = new ArrayList<>();
+            List<Order> allOrders = dbHelper.getOrdersByStand(myStandId, "all");
+            for (Order o : allOrders) {
+                if (o.getStatus().equals("pending_payment") || o.getStatus().equals("pending_verification")) {
+                    pendingOrders.add(o);
+                }
+            }
+            orders = pendingOrders;
         }
 
         if (orders.isEmpty()) {
@@ -99,99 +104,79 @@ public class ManageOrdersActivity extends AppCompatActivity implements OrderAdap
             rvOrders.setVisibility(View.VISIBLE);
             layoutEmpty.setVisibility(View.GONE);
 
-            if (adapter == null) {
-                adapter = new OrderAdapterAdmin(this, orders, this);
-                rvOrders.setAdapter(adapter);
-            } else {
-                adapter.updateOrders(orders);
-            }
+            // Pasang Adapter
+            adapter = new OrderAdapterAdmin(this, orders, this);
+            rvOrders.setAdapter(adapter);
         }
     }
 
     @Override
     public void onOrderClick(Order order) {
-        showOrderDetailDialog(order);
+        showOrderActionDialog(order);
     }
 
-    private void showOrderDetailDialog(Order order) {
-        // Get order items
-        List<OrderItem> items = dbHelper.getOrderItems(order.getId());
-
-        StringBuilder itemsText = new StringBuilder();
-        for (OrderItem item : items) {
-            itemsText.append("• ")
-                    .append(item.getMenuName())
-                    .append(" (")
-                    .append(item.getQty())
-                    .append("x)\n");
-        }
-
-        String message = "Customer: " + order.getUserName() + "\n" +
-                "Stand: " + order.getStandName() + "\n" +
-                "Waktu: " + order.getCreatedAt() + "\n\n" +
-                "Items:\n" + itemsText.toString() + "\n" +
-                "Payment: " + order.getPaymentMethod() + "\n" +
-                "Status: " + order.getStatusText();
-
-        if (order.getNotes() != null && !order.getNotes().isEmpty()) {
-            message += "\n\nCatatan: " + order.getNotes();
-        }
-
+    private void showOrderActionDialog(Order order) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("📦 Detail Pesanan #" + order.getId());
-        builder.setMessage(message);
+        builder.setTitle("Kelola Pesanan #" + order.getId());
 
-        // Show status update options based on current status
-        if (order.isPending()) {
-            builder.setPositiveButton("✅ Terima & Proses", (dialog, which) -> {
-                updateOrderStatus(order.getId(), "processing");
+        String[] options;
+
+        // Logika Status Pesanan
+        if (order.getStatus().equals("pending_payment")) {
+            // Jika Cash -> Terima Pembayaran
+            builder.setMessage("Metode: CASH\nTotal: Rp " + order.getTotal());
+            builder.setPositiveButton("✅ Terima Uang & Masak", (dialog, which) -> {
+                updateStatus(order.getId(), "cooking");
             });
-            builder.setNegativeButton("❌ Tolak", (dialog, which) -> {
-                updateOrderStatus(order.getId(), "cancelled");
+            builder.setNegativeButton("❌ Batalkan", (dialog, which) -> {
+                updateStatus(order.getId(), "cancelled");
             });
-        } else if (order.isProcessing()) {
-            builder.setPositiveButton("✅ Siap Diambil", (dialog, which) -> {
-                updateOrderStatus(order.getId(), "ready");
+
+        } else if (order.getStatus().equals("pending_verification")) {
+            // Jika Transfer -> Cek Bukti
+            builder.setMessage("Metode: " + order.getPaymentMethod().toUpperCase() + "\nCek mutasi rekening Anda.");
+            builder.setPositiveButton("✅ Uang Masuk (Masak)", (dialog, which) -> {
+                updateStatus(order.getId(), "cooking");
             });
-            builder.setNegativeButton("Tutup", null);
-        } else if (order.isReady()) {
-            builder.setPositiveButton("🎉 Selesai", (dialog, which) -> {
-                updateOrderStatus(order.getId(), "completed");
+            builder.setNegativeButton("❌ Tidak Ada Uang", (dialog, which) -> {
+                updateStatus(order.getId(), "cancelled");
             });
-            builder.setNegativeButton("Tutup", null);
+            builder.setNeutralButton("📷 Lihat Bukti", (dialog, which) -> {
+                // Tampilkan bukti (Simplifikasi: Toast atau Intent View Image)
+                if (order.getPaymentProofPath() != null) {
+                    Toast.makeText(this, "Membuka bukti bayar...", Toast.LENGTH_SHORT).show();
+                    // Kode untuk membuka gambar proof (jika ada file aslinya)
+                } else {
+                    Toast.makeText(this, "Tidak ada bukti terlampir", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+        } else if (order.getStatus().equals("cooking")) {
+            builder.setMessage("Pesanan sedang dimasak.");
+            builder.setPositiveButton("🔔 Makanan Siap (Notif User)", (dialog, which) -> {
+                updateStatus(order.getId(), "ready");
+            });
+
+        } else if (order.getStatus().equals("ready")) {
+            builder.setMessage("Makanan sudah siap diambil.");
+            builder.setPositiveButton("🤝 Sudah Diambil (Selesai)", (dialog, which) -> {
+                updateStatus(order.getId(), "completed");
+            });
         } else {
+            builder.setMessage("Status: " + order.getStatus());
             builder.setPositiveButton("Tutup", null);
         }
 
         builder.show();
     }
 
-    private void updateOrderStatus(int orderId, String newStatus) {
+    private void updateStatus(int orderId, String newStatus) {
         int result = dbHelper.updateOrderStatus(orderId, newStatus);
-
         if (result > 0) {
-            String statusText = "";
-            switch (newStatus) {
-                case "processing":
-                    statusText = "Pesanan sedang diproses";
-                    break;
-                case "ready":
-                    statusText = "Pesanan siap diambil! Customer akan mendapat notifikasi.";
-                    break;
-                case "completed":
-                    statusText = "Pesanan selesai";
-                    break;
-                case "cancelled":
-                    statusText = "Pesanan dibatalkan";
-                    break;
-            }
-
-            Toast.makeText(this, "✅ " + statusText, Toast.LENGTH_SHORT).show();
-
-            // Reload orders
-            loadOrders();
+            Toast.makeText(this, "Status diperbarui: " + newStatus, Toast.LENGTH_SHORT).show();
+            loadOrders(); // Refresh list
         } else {
-            Toast.makeText(this, "❌ Gagal update status", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Gagal update status", Toast.LENGTH_SHORT).show();
         }
     }
 }
