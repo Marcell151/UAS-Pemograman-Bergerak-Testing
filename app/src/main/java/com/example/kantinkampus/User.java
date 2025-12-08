@@ -5,22 +5,27 @@ public class User {
     private String email;
     private String password;
     private String name;
-    private String role; // 'admin' atau 'customer'
+    private String role; // 'seller' atau 'buyer'
     private String phone;
+
+    // For buyers (mahasiswa/dosen)
     private String nimNip; // NIM untuk mahasiswa, NIP untuk dosen
-    private String type; // 'mahasiswa', 'dosen', atau null untuk admin
+    private String type; // 'mahasiswa', 'dosen', atau null untuk seller
+
+    // For sellers
+    private String businessLicenseNumber; // Nomor kartu usaha kerjasama kampus
+    private Integer standId; // ID stand yang dimiliki (hanya 1)
+
     private String createdAt;
 
+    // Constructors
     public User() {}
 
-    public User(int id, String email, String name, String role, String phone, String nimNip, String type) {
+    public User(int id, String email, String name, String role) {
         this.id = id;
         this.email = email;
         this.name = name;
         this.role = role;
-        this.phone = phone;
-        this.nimNip = nimNip;
-        this.type = type;
     }
 
     // Getters and Setters
@@ -88,6 +93,22 @@ public class User {
         this.type = type;
     }
 
+    public String getBusinessLicenseNumber() {
+        return businessLicenseNumber;
+    }
+
+    public void setBusinessLicenseNumber(String businessLicenseNumber) {
+        this.businessLicenseNumber = businessLicenseNumber;
+    }
+
+    public Integer getStandId() {
+        return standId;
+    }
+
+    public void setStandId(Integer standId) {
+        this.standId = standId;
+    }
+
     public String getCreatedAt() {
         return createdAt;
     }
@@ -96,13 +117,13 @@ public class User {
         this.createdAt = createdAt;
     }
 
-    // Helper methods
-    public boolean isAdmin() {
-        return "admin".equals(role);
+    // Helper Methods
+    public boolean isSeller() {
+        return "seller".equals(role);
     }
 
-    public boolean isCustomer() {
-        return "customer".equals(role);
+    public boolean isBuyer() {
+        return "buyer".equals(role);
     }
 
     public boolean isMahasiswa() {
@@ -113,6 +134,10 @@ public class User {
         return "dosen".equals(type);
     }
 
+    public boolean hasStand() {
+        return standId != null && standId > 0;
+    }
+
     @Override
     public String toString() {
         return "User{" +
@@ -121,6 +146,7 @@ public class User {
                 ", name='" + name + '\'' +
                 ", role='" + role + '\'' +
                 ", type='" + type + '\'' +
+                ", hasStand=" + hasStand() +
                 '}';
     }
 }

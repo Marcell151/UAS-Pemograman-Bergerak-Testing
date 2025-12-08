@@ -3,33 +3,35 @@ package com.example.kantinkampus;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-/**
- * SessionManager untuk mengelola sesi login user
- * Menggunakan SharedPreferences untuk menyimpan data user yang sedang login
- */
 public class SessionManager {
+    private SharedPreferences pref;
+    private SharedPreferences.Editor editor;
+    private Context context;
+
+    // SharedPreferences file name
     private static final String PREF_NAME = "KantinKampusSession";
+
+    // SharedPreferences Keys
     private static final String KEY_IS_LOGGED_IN = "isLoggedIn";
     private static final String KEY_USER_ID = "userId";
     private static final String KEY_USER_EMAIL = "userEmail";
     private static final String KEY_USER_NAME = "userName";
-    private static final String KEY_USER_ROLE = "userRole";
+    private static final String KEY_USER_ROLE = "userRole"; // 'seller' atau 'buyer'
     private static final String KEY_USER_PHONE = "userPhone";
     private static final String KEY_USER_NIM_NIP = "userNimNip";
-    private static final String KEY_USER_TYPE = "userType";
+    private static final String KEY_USER_TYPE = "userType"; // 'mahasiswa', 'dosen', null
+    private static final String KEY_BUSINESS_LICENSE = "businessLicense";
+    private static final String KEY_STAND_ID = "standId";
 
-    private SharedPreferences sharedPreferences;
-    private SharedPreferences.Editor editor;
-    private Context context;
-
+    // Constructor
     public SessionManager(Context context) {
         this.context = context;
-        sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        editor = sharedPreferences.edit();
+        pref = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        editor = pref.edit();
     }
 
     /**
-     * Simpan sesi login user
+     * Create login session
      */
     public void createLoginSession(User user) {
         editor.putBoolean(KEY_IS_LOGGED_IN, true);
@@ -38,20 +40,79 @@ public class SessionManager {
         editor.putString(KEY_USER_NAME, user.getName());
         editor.putString(KEY_USER_ROLE, user.getRole());
         editor.putString(KEY_USER_PHONE, user.getPhone());
-        editor.putString(KEY_USER_NIM_NIP, user.getNimNip());
-        editor.putString(KEY_USER_TYPE, user.getType());
-        editor.apply();
+
+        if (user.isBuyer()) {
+            editor.putString(KEY_USER_NIM_NIP, user.getNimNip());
+            editor.putString(KEY_USER_TYPE, user.getType());
+        } else if (user.isSeller()) {
+            editor.putString(KEY_BUSINESS_LICENSE, user.getBusinessLicenseNumber());
+            if (user.getStandId() != null) {
+                editor.putInt(KEY_STAND_ID, user.getStandId());
+            }
+        }
+
+        editor.commit();
     }
 
     /**
-     * Cek apakah user sudah login
+     * Update stand ID for seller
+     */
+    public void updateStandId(int standId) {
+        editor.putInt(KEY_STAND_ID, standId);
+        editor.commit();
+    }
+
+    /**
+     * Check login status
      */
     public boolean isLoggedIn() {
-        return sharedPreferences.getBoolean(KEY_IS_LOGGED_IN, false);
+        return pref.getBoolean(KEY_IS_LOGGED_IN, false);
     }
 
     /**
-     * Dapatkan data user yang sedang login
+     * Get user ID
+     */
+    public int getUserId() {
+        return pref.getInt(KEY_USER_ID, -1);
+    }
+
+    /**
+     * Get user role
+     */
+    public String getUserRole() {
+        return pref.getString(KEY_USER_ROLE, null);
+    }
+
+    /**
+     * Check if user is seller
+     */
+    public boolean isSeller() {
+        return "seller".equals(getUserRole());
+    }
+
+    /**
+     * Check if user is buyer
+     */
+    public boolean isBuyer() {
+        return "buyer".equals(getUserRole());
+    }
+
+    /**
+     * Get stand ID (for sellers)
+     */
+    public int getStandId() {
+        return pref.getInt(KEY_STAND_ID, -1);
+    }
+
+    /**
+     * Check if seller has stand
+     */
+    public boolean hasStand() {
+        return getStandId() > 0;
+    }
+
+    /**
+     * Get user details
      */
     public User getUserDetails() {
         if (!isLoggedIn()) {
@@ -59,49 +120,24 @@ public class SessionManager {
         }
 
         User user = new User();
-        user.setId(sharedPreferences.getInt(KEY_USER_ID, -1));
-        user.setEmail(sharedPreferences.getString(KEY_USER_EMAIL, ""));
-        user.setName(sharedPreferences.getString(KEY_USER_NAME, ""));
-        user.setRole(sharedPreferences.getString(KEY_USER_ROLE, ""));
-        user.setPhone(sharedPreferences.getString(KEY_USER_PHONE, ""));
-        user.setNimNip(sharedPreferences.getString(KEY_USER_NIM_NIP, ""));
-        user.setType(sharedPreferences.getString(KEY_USER_TYPE, ""));
+        user.setId(pref.getInt(KEY_USER_ID, -1));
+        user.setEmail(pref.getString(KEY_USER_EMAIL, null));
+        user.setName(pref.getString(KEY_USER_NAME, null));
+        user.setRole(pref.getString(KEY_USER_ROLE, null));
+        user.setPhone(pref.getString(KEY_USER_PHONE, null));
+
+        if (isBuyer()) {
+            user.setNimNip(pref.getString(KEY_USER_NIM_NIP, null));
+            user.setType(pref.getString(KEY_USER_TYPE, null));
+        } else if (isSeller()) {
+            user.setBusinessLicenseNumber(pref.getString(KEY_BUSINESS_LICENSE, null));
+            int standId = pref.getInt(KEY_STAND_ID, -1);
+            if (standId > 0) {
+                user.setStandId(standId);
+            }
+        }
+
         return user;
-    }
-
-    /**
-     * Dapatkan ID user yang sedang login
-     */
-    public int getUserId() {
-        return sharedPreferences.getInt(KEY_USER_ID, -1);
-    }
-
-    /**
-     * Dapatkan nama user yang sedang login
-     */
-    public String getUserName() {
-        return sharedPreferences.getString(KEY_USER_NAME, "");
-    }
-
-    /**
-     * Dapatkan role user yang sedang login
-     */
-    public String getUserRole() {
-        return sharedPreferences.getString(KEY_USER_ROLE, "");
-    }
-
-    /**
-     * Cek apakah user adalah admin
-     */
-    public boolean isAdmin() {
-        return "admin".equals(getUserRole());
-    }
-
-    /**
-     * Cek apakah user adalah customer
-     */
-    public boolean isCustomer() {
-        return "customer".equals(getUserRole());
     }
 
     /**
@@ -109,22 +145,20 @@ public class SessionManager {
      */
     public void logoutUser() {
         editor.clear();
-        editor.apply();
+        editor.commit();
     }
 
     /**
-     * Update nama user
+     * Get user name
      */
-    public void updateUserName(String name) {
-        editor.putString(KEY_USER_NAME, name);
-        editor.apply();
+    public String getUserName() {
+        return pref.getString(KEY_USER_NAME, "User");
     }
 
     /**
-     * Update phone user
+     * Get user email
      */
-    public void updateUserPhone(String phone) {
-        editor.putString(KEY_USER_PHONE, phone);
-        editor.apply();
+    public String getUserEmail() {
+        return pref.getString(KEY_USER_EMAIL, null);
     }
 }
